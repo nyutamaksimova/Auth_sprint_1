@@ -1,0 +1,102 @@
+from uuid import UUID
+
+from fastapi import HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.core.config import settings
+from src.core.security import hash_password, verify_password
+from src.db.redis_db import REFRESH_PREFIX
+from src.models.auth import RefreshRequest, RegisterRequest
+from src.models.user import User
+from src.services.db_user_service import UserRepository
+from src.services.token_service import TokenService
+
+
+class AuthService:
+
+    def __init__(self, db: AsyncSession, redis: Redis):
+        self.repository = UserRepository(db)
+        self.redis = redis
+
+    async def register(self, data: RegisterRequest) -> User:
+
+        exists = await self.repository.get_by_username(data.username)
+
+        if exists:
+            raise HTTPException(409, "User already exists")
+
+        user = User(
+            username=data.username,
+            password_hash=hash_password(data.password)
+        )
+
+        return await self.repository.create(user)
+
+    async def login(self, form_data: OAuth2PasswordRequestForm):
+
+        user = await self.repository.get_by_username(form_data.username)
+
+        if not user:
+            raise HTTPException(401, "Wrong username or password")
+
+        if not verify_password(form_data.password, user.password_hash):
+            raise HTTPException(401, "Wrong username or password")
+
+        access, refresh = TokenService.create_tokens(user)
+
+        await self.redis.set(
+            REFRESH_PREFIX + str(user.id),
+            refresh,
+            ex=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
+        )
+
+        return {
+            "access_token": access,
+            "refresh_token": refresh,
+            "token_type": "bearer",
+        }
+
+    async def refresh(self, data: RefreshRequest):
+
+        payload = TokenService.validate_refresh(data.refresh_token)
+
+        if payload is None:
+            raise HTTPException(401, "Invalid refresh token")
+
+        user_id = payload["sub"]
+
+        stored_token = await self.redis.get(REFRESH_PREFIX + user_id)
+
+        if stored_token is None:
+            raise HTTPException(
+                401, "Refresh token expired")
+
+        if stored_token != data.refresh_token:
+            raise HTTPException(401, "Refresh token revoked")
+
+        user = await self.repository.get_by_id(UUID(user_id))
+
+        if user is None:
+            raise HTTPException(404, "User not found")
+
+        access, refresh = TokenService.create_tokens(user)
+
+        await self.redis.delete(REFRESH_PREFIX + user_id)
+
+        await self.redis.set(REFRESH_PREFIX + user_id, refresh,
+                             ex=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600)
+
+        return {
+            "access_token": access,
+            "refresh_token": refresh,
+            "token_type": "bearer",
+        }
+
+    async def logout(self, user: User):
+
+        key = REFRESH_PREFIX + str(user.id)
+
+        await self.redis.delete(key)
+
+        return {"message": "Successfully logged out"}
