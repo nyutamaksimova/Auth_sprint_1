@@ -10,7 +10,7 @@ from src.models.auth import TokenResponse
 from src.models.auth import RefreshRequest
 from src.models.auth import RegisterRequest
 from src.models.auth import UserResponse
-from src.models.user import User
+from src.models.auth import CurrentUser
 from src.services.auth_service import AuthService
 
 router = APIRouter(
@@ -47,8 +47,10 @@ async def login(
 
 @router.get("/me")
 async def me(
-        user: User = Depends(get_current_user),
+        current: CurrentUser = Depends(get_current_user),
 ):
+    user = current.user
+
     return {
         "id": str(user.id),
         "username": user.username,
@@ -72,7 +74,7 @@ async def refresh(
 
 @router.post("/logout")
 async def logout(
-        current_user: User = Depends(get_current_user),
+        current_user: CurrentUser = Depends(get_current_user),
         redis: Redis = Depends(get_redis),
         db: AsyncSession = Depends(get_db),
 ):

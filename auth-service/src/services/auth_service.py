@@ -1,3 +1,4 @@
+import time
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -6,8 +7,8 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.config import settings
 from src.core.security import hash_password, verify_password
-from src.db.redis_db import REFRESH_PREFIX
-from src.models.auth import RefreshRequest, RegisterRequest
+from src.db.redis_db import REFRESH_PREFIX, BLACKLIST_PREFIX
+from src.models.auth import RefreshRequest, RegisterRequest, CurrentUser
 from src.models.user import User
 from src.services.db_user_service import UserRepository
 from src.services.token_service import TokenService
@@ -93,10 +94,22 @@ class AuthService:
             "token_type": "bearer",
         }
 
-    async def logout(self, user: User):
+    async def logout(self, current: CurrentUser):
+
+        user = current.user
+        payload = current.payload
 
         key = REFRESH_PREFIX + str(user.id)
 
         await self.redis.delete(key)
+
+        ttl = payload["exp"] - int(time.time())
+
+        if ttl > 0:
+            await self.redis.set(
+                BLACKLIST_PREFIX + payload["jti"],
+                "1",
+                ex=ttl,
+            )
 
         return {"message": "Successfully logged out"}

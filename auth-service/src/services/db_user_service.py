@@ -35,11 +35,7 @@ class UserRepository:
 
         return user
 
-    async def update_role(self, user_id: UUID, role: UserRole) -> User | None:
-        user = await self.get_by_id(user_id)
-
-        if user is None:
-            return None
+    async def update_role(self, user: User, role: UserRole) -> User:
 
         user.role = role
 

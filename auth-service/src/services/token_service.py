@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from src.core.security import (
     create_access_token,
     create_refresh_token,
@@ -17,6 +19,7 @@ class TokenService:
         payload = {
             "sub": str(user.id),
             "role": user.role.value,
+            "jti": str(uuid4()),
             "is_superuser": user.is_superuser,
         }
 

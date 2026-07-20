@@ -13,7 +13,7 @@ DATABASE_URL = (f"postgresql+asyncpg://"
 
 engine = create_async_engine(
     DATABASE_URL,
-    echo=True,
+    echo=settings.POSTGRES_ECHO,
 )
 
 AsyncSessionLocal = async_sessionmaker(

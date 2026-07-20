@@ -1,7 +1,8 @@
+from dataclasses import dataclass
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
-
+from src.models.user import User
 from src.models.user import UserRole
 
 
@@ -31,3 +32,9 @@ class RefreshRequest(BaseModel):
 
 class RoleRequest(BaseModel):
     role: UserRole
+
+
+@dataclass
+class CurrentUser:
+    user: User
+    payload: dict

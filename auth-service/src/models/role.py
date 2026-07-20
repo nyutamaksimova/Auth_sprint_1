@@ -53,5 +53,18 @@ ROLE_PERMISSIONS = {
         Permission.MANAGE_USERS,
         Permission.ASSIGN_ROLES,
         Permission.VIEW_STATS,
+    },
+
+    UserRole.SUPER_ADMIN: {
+        Permission.VIEW_MOVIES,
+        Permission.RATE_MOVIES,
+        Permission.COMMENT_MOVIES,
+        Permission.DELETE_COMMENTS,
+        Permission.CREATE_MOVIES,
+        Permission.EDIT_MOVIES,
+        Permission.DELETE_MOVIES,
+        Permission.MANAGE_USERS,
+        Permission.ASSIGN_ROLES,
+        Permission.VIEW_STATS,
     }
 }

@@ -14,10 +14,8 @@ from src.models.base import Base
 async def lifespan(app: FastAPI):
     app.state.redis = Redis(host=settings.redis_host, port=settings.redis_port, decode_responses=True, )
 
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
     await create_admin_if_not_exists()
+
     yield
 
 

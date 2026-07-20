@@ -7,3 +7,4 @@ async def get_redis(request: Request) -> Redis:
 
 
 REFRESH_PREFIX = "refresh:"
+BLACKLIST_PREFIX = "blacklist:"

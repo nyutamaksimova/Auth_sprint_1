@@ -23,7 +23,7 @@ async def create_admin_if_not_exists():
         admin = User(
             username=settings.ADMIN_EMAIL,
             password_hash=hash_password(settings.ADMIN_PASSWORD),
-            role=UserRole.ADMIN,
+            role=UserRole.SUPER_ADMIN,
             is_superuser=True,
         )
 
